@@ -147,7 +147,7 @@ refer to : https://github.com/zhouchunyuan/shadingCorrection_MoveStage
         Dialog.addSlider("image size:", 128, 8192, imageSize);
         Dialog.addMessage("Parameters for created gaussian:");
         Dialog.addSlider("max intensity:",10,4095,centerIntensity);
-        Dialog.addSlider("intensity at edge:", 0.1, 0.9, intensityAtCorner);
+        Dialog.addSlider("intensity at corner:", 0.1, 0.9, intensityAtCorner);
         Dialog.addCheckbox("add noise to created image", addNoise)
         Dialog.show();
         viewSize = Dialog.getNumber();
