@@ -8,7 +8,7 @@
 // 4) button4 "curv", before using this button, remember to select the original stack.
 //    The macro will apply ROIs from roimanager to current stack, and draw a curve plot.
 // 
-//   see a sample file <p62-parp1_0009_LSM>
+//   see a screen shot jpg <DNA damage Tool.jpg>
 
 var radius = 10;
     macro "Unused Tool - C037" { }
