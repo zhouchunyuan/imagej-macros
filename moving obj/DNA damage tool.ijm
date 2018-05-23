@@ -10,7 +10,6 @@
 // 
 //   see a screen shot jpg <DNA damage Tool.jpg>
 
-var radius = 10;
     macro "Unused Tool - C037" { }
 
     macro "Copy Image and split color Action Tool - C037T0d10cT4d10oT8d10pTcd10y" {
