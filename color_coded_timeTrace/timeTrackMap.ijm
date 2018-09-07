@@ -86,6 +86,7 @@ greens[0]=255;
 blues[0]=255;
 setLut(reds, greens, blues);
 
+run("Enhance Contrast", "saturated=0.35");
 
 
 
