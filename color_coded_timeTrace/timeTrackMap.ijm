@@ -75,7 +75,10 @@ Overlay.drawString(""+min_z+" sec", x1+5,scaleY0 +10+fontSize/2);
 Overlay.drawString(""+max_z+" sec", x1+5,scaleY0 +scaleLines );
 
 Overlay.drawString("("+min_x+","+min_y+")", 0,10+fontSize/2);
-Overlay.drawString("("+max_x+","+max_y+")", 512 - 100,ht/wx*512);
+
+outStr = "("+max_x+","+max_y+")";
+strWidth = getStringWidth(outStr);
+Overlay.drawString(outStr, 512 - strWidth,ht/wx*512);
 Overlay.show();
 
 /******* set LUT *******/
