@@ -8,7 +8,7 @@ I = 65535;// initail intensity
 /***********************************
  if we set pinhole = 1 AU, 
  the two dots will appear to
- mergeseperated at 0.4 AU distance
+ merge at 0.4 AU distance
 
  if we set pinhole = 0.1 AU,
  two peaks can be seen even we
