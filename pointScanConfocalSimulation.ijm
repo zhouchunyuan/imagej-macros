@@ -4,7 +4,7 @@ PSF_WIDTH = width/5;
 sigma = PSF_WIDTH/6;
 
 I = 65535;// initail intensity
-
+title = "confocal simulator";
 /***********************************
  if we set pinhole = 1 AU, 
  the two dots will appear to
@@ -24,7 +24,7 @@ offset = 0;// center offset of these dots
 // and if distance closer, also attenuation should be smaller 
 attenuationFactor = 0.008/pinholeSizeFactor*distanceFactor;
 
-newImage("Untitled", "16-bit black", 512, 512, 1);
+newImage(title, "16-bit black", 512, 512, 1);
 
 illum = newArray(width);
 fluo = newArray(width);
@@ -51,7 +51,7 @@ for(illum_center = 0; illum_center< width; illum_center++){
         fluo[i] = I1*Airy(x1)+I2*Airy(x2);
         setPixel(i,height/2+10,fluo[i]);
     }
-    // create detector array
+    // create center detector array
     AU = PSF_WIDTH*pinholeSizeFactor ;
     detect_pos = illum_center;
     signal = 0;
@@ -65,11 +65,35 @@ for(illum_center = 0; illum_center< width; illum_center++){
     }
     detect[detect_pos] = signal*attenuationFactor ;
     setPixel(detect_pos,height/2+50,detect[detect_pos]);
-    
+
+    // create shifted detector array
+    /*********************************
+      here we simulate a PMT located
+      an bias-distance away from the center.
+      We can see, a shifted PMT can increase 
+      resolution, but decrease the intensity.
+     *********************************/
+    bias_distance = PSF_WIDTH*0.5;
+    detect_pos = illum_center + bias_distance;
+    signal = 0;
+    for(i=detect_pos-AU/2;i<detect_pos+AU/2;i++){
+        if(i<0)
+            signal +=fluo[0];
+        else if(i>=width)
+            signal +=fluo[width-1];
+        else
+            signal +=fluo[i];
+    }
+    detect[illum_center] = signal*attenuationFactor ;
+    setPixel(detect_pos,height/2+100,detect[illum_center]);    
     updateDisplay();
     //wait(10);
 }
 profileAt = height/2+50;
+makeLine(0,profileAt ,width,profileAt );
+run("Plot Profile");
+selectWindow(title);
+profileAt = height/2+100;
 makeLine(0,profileAt ,width,profileAt );
 run("Plot Profile");
 
