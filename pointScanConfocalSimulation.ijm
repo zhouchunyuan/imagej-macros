@@ -33,7 +33,7 @@ detect = newArray(width);
 p1 = floor(width/2)-floor(distance/2) + offset;
 p2 = floor(width/2)+floor(distance/2) + offset;
 
-for(illum_center = 0; illum_center< width; illum_center++){ 
+for(illum_center = 0; illum_center< width-100; illum_center++){ 
     // create illumination array
     for(i=0;i<width;i++){
         x = (i-illum_center)/PSF_WIDTH*2*4.5;
@@ -97,13 +97,45 @@ profileAt = height/2+100;
 makeLine(0,profileAt ,width,profileAt );
 run("Plot Profile");
 
+
+/******************************************************
+# Since there is no Bessel function in Imagej macro,
+# I have to use j1 = sin(x)/(x*x)-cos(x)/x to simulate
+# Bessel first kind first order J1
+# Scale factor of 1.14 in x, and 2.25 in y is found by
+# python 3.6:
+
+import numpy as np
+import pylab as py
+import scipy.special as sp
+
+def airy(x):
+    f = 1.14
+    a = np.sin(x*f)/((x*f)**2)-np.cos(x*f)/(x*f)
+    return 2.25*((2*a/(x*f))**2)
+
+x = np.linspace(-10, 10, 2000)
+py.plot(x, (2*sp.j1(x)/x)**2,'r--',x, airy(x),'b--')
+
+py.xlim((-10, 10))
+py.ylim((-0.5, 1.1))
+py.legend(('$(2\mathcal{J}_1(x)/x)^2$','$2.25[(sin(x)/x^2-cos(x)/x)/x]^2$'))
+py.xlabel('$x$')
+py.ylabel('Intensity')
+py.grid(True)
+                                     
+py.show()
+*******************************************************/
 function Airy(x){
-    if(x==0){
-        ret = 1/2.25;
+    factor = 1.14;
+    m = 2.25;
+    fx = factor*x;
+    if(fx==0){
+        ret = 1;
     }else{
-        j1 = sin(x)/(x*x)-cos(x)/x;
-        ret = (2*j1/x)*(2*j1/x);
+        j1 = sin(fx)/(fx*fx)-cos(fx)/fx;
+        ret = m*(2*j1/fx)*(2*j1/fx);
     }
-    return ret*2.25;
+    return ret;
 }
 
