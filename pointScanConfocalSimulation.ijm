@@ -104,6 +104,8 @@ run("Plot Profile");
 # Bessel first kind first order J1
 # Scale factor of 1.14 in x, and 2.25 in y is found by
 # python 3.6:
+# Comparison vs gaussian is also done. With sigma of 3.83/3
+# The gaussian is very similar to Airy disk
 
 import numpy as np
 import pylab as py
@@ -114,12 +116,19 @@ def airy(x):
     a = np.sin(x*f)/((x*f)**2)-np.cos(x*f)/(x*f)
     return 2.25*((2*a/(x*f))**2)
 
+def gaussian(x, mu, sig):
+    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
 x = np.linspace(-10, 10, 2000)
-py.plot(x, (2*sp.j1(x)/x)**2,'r--',x, airy(x),'b--')
+py.plot(x, (2*sp.j1(x)/x)**2,'r--',
+        x, airy(x),'b--',
+        x, gaussian(x,0,3.83/3),'g--')
 
 py.xlim((-10, 10))
 py.ylim((-0.5, 1.1))
-py.legend(('$(2\mathcal{J}_1(x)/x)^2$','$2.25[(sin(x)/x^2-cos(x)/x)/x]^2$'))
+py.legend(('$(2\mathcal{J}_1(x)/x)^2$',
+           r'$\mathrm{2.25}(\frac{sin(x)/x^2-cos(x)/x}{x})^2$',
+           '$gaussian$'))
 py.xlabel('$x$')
 py.ylabel('Intensity')
 py.grid(True)
