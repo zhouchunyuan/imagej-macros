@@ -25,13 +25,13 @@ Dialog.addChoice("positionX:", choice,choice[0]);
 Dialog.addChoice("positionY:", choice,choice[1]);
 Dialog.addChoice("time:", choice,choice[2]);
 Dialog.addRadioButtonGroup("time format", newArray("0.00(s)","00:00:00"), 1, 2, "0.00(s)");
-Dialog.addNumber("MSD n number",50);
+Dialog.addNumber("MSD delay number",50);
 Dialog.show();
 chx = Dialog.getChoice();
 chy = Dialog.getChoice();
 cht = Dialog.getChoice();
 timeFormat = Dialog.getRadioButton();
-msdNumber = Dialog.getNumber();
+delayNumber = Dialog.getNumber();
 
 X = newArray(size-1);
 Y = newArray(size-1);
@@ -106,19 +106,23 @@ strWidth = getStringWidth(outStr);
 Overlay.drawString(outStr, 512 - strWidth,ht/wx*512);
 
 /*********** show MSD *************/
-    // average on msdNumber frames
+    // average on m frames
+    // delay time is delayNumber 
 
-    m = (size-1) - msdNumber - 1;
+    m = (size-1) - delayNumber - 1;
     sum = 0;
+    dtsum = 0;
     for(i=0;i<m;i++){
-        //t0 = T[i];
-        //t1 = T[n+i];
-        sum += (X[msdNumber +i]-X[i])*(X[msdNumber +i]-X[i])
-               +(Y[msdNumber +i]-Y[i])*(Y[msdNumber +i]-Y[i]);
+        dtsum += Z[i+delayNumber ]-Z[i];
+        sum += (X[delayNumber +i]-X[i])*(X[delayNumber +i]-X[i])
+               +(Y[delayNumber +i]-Y[i])*(Y[delayNumber +i]-Y[i]);
     }
     msd = sum/m;
-    msdStr = "MSD: "+msd+" um2/frame";
-Overlay.drawString(msdStr, getWidth()-getStringWidth(msdStr), 20);
+    dt = dtsum/m;
+    msdStr = "MSD: "+msd+" um2/"+delayNumber+" frames";
+Overlay.drawString(msdStr, getWidth()-getStringWidth(msdStr), 15);
+    msdStr = "MSD: "+msd/dt+" um2/s";
+Overlay.drawString(msdStr, getWidth()-getStringWidth(msdStr), 30);
 /*********************************/
 Overlay.show();
 
