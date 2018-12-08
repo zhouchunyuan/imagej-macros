@@ -1,3 +1,6 @@
+/* in a 3x3 matrix, the 4th element is the center */
+/* if v[4] is larger than other elements, the current x,y is considered as a peak */
+
 w = getWidth();
 h = getHeight();
 
