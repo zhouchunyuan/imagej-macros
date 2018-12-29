@@ -1,0 +1,85 @@
+
+var	pixelNumber = 256;
+var	pixelSize = 160;//nm
+var	gridSize = 30;//nm
+
+macro "Unused Tool- 1" {}
+macro "STORM density map Action Tool -  C000D22D43D73C0f0O0095C000De4De6Cf00D5eDeaDaaD8eD7aO08f9"{
+
+	requires("1.52");
+
+
+	html = "<html>"
+		+"<h2>find N-STORM cluster by list 1.0</h2>"
+		+"<b>Usage:</b><br>"
+		+"...<br>"
+		+"<br>An imageJ macro written by : Chunyuan Zhou<br>"
+		+"Dec. 29, 2018<br>";
+
+	Dialog.create("Choose camera pixel size");
+	pixelSizeItems = newArray("160 nm ( EMCCD )", "162.5 nm ( sCMOS )");
+	Dialog.addChoice("pixel size:", pixelSizeItems );
+	pixelNumberItems = newArray("512x512", "256x256", "128x128");
+	Dialog.addRadioButtonGroup("pixel number:", pixelNumberItems ,1, 3, "256x256");
+	Dialog.addNumber("Grid size (nm):",gridSize);
+	Dialog.addHelp(html);
+	Dialog.show();
+
+	pixelSizeStr = Dialog.getChoice();
+	pixelNumberStr = Dialog.getRadioButton();
+	gridSize = Dialog.getNumber();
+
+	if( pixelSizeStr == pixelSizeItems[0] )pixelSize = 160;
+	if( pixelSizeStr == pixelSizeItems[1] )pixelSize = 162.5;
+
+	if( pixelNumberStr == pixelNumberItems[0]) pixelNumber = 512;
+	if( pixelNumberStr == pixelNumberItems[1]) pixelNumber = 256;
+	if( pixelNumberStr == pixelNumberItems[2]) pixelNumber = 128;
+
+	showStatus("Openning molecule list, please wait ...");
+	path = File.openDialog("Select STORM list:txt");
+	Table.open(path);
+	
+	Table.showRowNumbers(0);
+	columnNames = split(Table.headings(),"\t"); 
+
+
+	X = Table.getColumn("Xc");
+	Y = Table.getColumn("Yc");
+
+	imgW = floor(pixelNumber * pixelSize / gridSize);
+	imgH = floor(pixelNumber * pixelSize / gridSize);
+	newImage("Density Map", "16-bit black", imgW, imgH, 1);
+
+	for(i=0;i<Table.size;i++){
+		x = floor(X[i]/gridSize);
+		y = floor(Y[i]/gridSize);
+		v=getPixel(x, y);
+		setPixel(x,y,v+1);
+	}
+
+	run("Convolve...", "text1=[1 1 1 1 1\n1 1 1 1 1\n1 1 1 1 1\n1 1 1 1 1\n1 1 1 1 1\n]");
+	run("Enhance Contrast", "saturated=0.35");
+
+
+
+	Dialog.create("Process finished.");
+  	Dialog.addMessage("done");
+  	Dialog.show(); 
+
+}
+
+macro "Create mask by thresholding Action Tool -  C000D22D43D73O0095O08f9D5eDeaDaaD8eD7a"{
+
+	requires("1.52");
+
+	selectWindow("Density Map");
+	run("Duplicate...", "Density Mask");
+	showStatus("thresholding ...");
+	run("Threshold...");
+	waitForUser("Adjust threshold. \nPress OK to continue...");
+
+	run("Convert to Mask");
+
+}
+
