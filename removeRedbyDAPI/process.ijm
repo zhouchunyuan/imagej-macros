@@ -10,10 +10,18 @@
 
 另外，批量方法讲究的是统计学上的通用性，一般不必追究少量误差。
 
+History: 
+20181225: 对红通道进行dilate
+20190103: 
+  1）选取红色高亮的部分为maskRed
+  2）选取蓝色核的部分maskBlue
+  3）对maskBlue扩大像素，再用maskRed-maskBlue
+  4) 用ch1减去第3步的结果（高亮部分不在maskBlue势力范围内的部分被去除）
 */
-RED_PERCENT = 0.02;
+RED_PERCENT = 0.015;
 BLUE_PERCENT = 0.1;
-BINARY_BRIGHTNESS = 200;
+BINARY_BRIGHTNESS = 45;
+maskBlueMargin = 5;
 
 dir = getDirectory("Choose a Directory ");
 list = getFileList(dir);
@@ -40,6 +48,7 @@ for (i=0; i<list.length; i+=2) {
     close();
     run("Red");
     saveAs("Tiff", dir+ch1+"_copy.tif");
+
 }
 
 function process(ch1,ch2){
@@ -58,8 +67,13 @@ function process(ch1,ch2){
     setThreshold(i, max);
     run("Convert to Mask");
 
+    // **** modify the binary
+    run("Options...", "iterations=1 count=3");
+    run("Dilate");// expand a little
+
+    run("Watershed");
     run("Analyze Particles...", "  show=Nothing clear add");
-    close("maskRed");
+    //close("maskRed");
 
     /*************** select DAPI *****************/
     selectWindow(ch2);
@@ -76,9 +90,12 @@ function process(ch1,ch2){
     setThreshold(i, max);
     run("Convert to Mask");
 
+    // **** modify the binary
+    //run("Dilate");// expand a little
+
     run("Set Measurements...", "area mean integrated redirect=None decimal=3");
     roiManager("Measure");
-    close("maskBlue");
+    //close("maskBlue");
 
     nonZero = 0;
     for(i=0;i<nResults;i++){
@@ -103,5 +120,18 @@ function process(ch1,ch2){
     roiManager("Deselect");
     roiManager("Fill");// this might be a bug
     roiManager("Fill");// both "Fill" are needed. otherwise imcomplete fill.
+
+    /************* further process binary ***************/
+    selectWindow("maskBlue");
+    run("Options...", "iterations=" + maskBlueMargin +" count=1");
+    run("Dilate");// expand 5 pixels
+    imageCalculator("Subtract create", "maskRed","maskBlue");
+    imageCalculator("Subtract create", ch1,"Result of maskRed");
+    close("maskRed");
+    close("maskBlue");
+    close("Result of maskRed");
+    close(ch1);
+
+    rename(ch1);
 
 }
