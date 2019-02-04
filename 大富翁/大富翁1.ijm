@@ -183,6 +183,7 @@ function check_player_click(player,x,y){
                     wait(100);
                 }
                 player[POS] = stop%totalBlocks ;
+                show_area_info(player[POS]);
                 ret = check_events(player,start,stop);
             }
         }else{
@@ -191,6 +192,77 @@ function check_player_click(player,x,y){
     }
     return ret;
     
+}
+function show_area_info(n){
+    color=getValue("color.foreground");
+
+    xc=mapWidth/2;yc=mapHeight/2;
+    radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
+    radius = radius*0.6;
+    setColor("white");
+    fillOval(xc-radius, yc-radius, radius*2, radius*2);
+    
+    setColor("black");    
+    run("Select None");
+    type= get_item("类别",n);
+    if(type=="商场"){
+        str0 = get_item("名称",n);
+        str1 = "过路费——";
+        str2 = "空地\n一幢房屋\n两幢房屋\n三幢房屋\n四幢房屋\n一幢旅馆";
+        str2 +="\n房屋建筑费 每幢\n旅馆建筑费 每幢";
+        str3 = get_item("过路费",n);
+        str3 +="\n"+get_item("过路费1",n);
+        str3 +="\n"+get_item("过路费2",n);
+        str3 +="\n"+get_item("过路费3",n);
+        str3 +="\n"+get_item("过路费4",n);
+        str3 +="\n"+get_item("过路费5",n);
+        str3 +="\n"+get_item("建房费",n);
+        str3 +="\n"+get_item("建旅馆",n);
+        offsetx = xc-getStringWidth(str2)/5/2;
+        offsety = yc-radius+2*fontHeight;
+        drawString(str0,xc,offsety);
+        setJustification("right");
+        drawString(str1,offsetx,offsety+3*fontHeight);
+        setJustification("left");
+        drawString(str2,offsetx,offsety+3*fontHeight);
+        setJustification("right");
+        drawString(str3,offsetx+getStringWidth(str2)/3,offsety+3*fontHeight);
+    }
+    if(type=="水电"){
+        str0 = get_item("名称",n);
+        str1 = "凡拥有电力或水电公司者，其过\n路费得收取所转转盘数之十倍。";
+        str2 = "凡拥有电力公司及自来水公司者，其\n过路费得收取所转转盘数之一百倍。";
+
+        offsetx = xc;
+        offsety = yc-radius+2*fontHeight;
+        drawString(str0,xc,offsety);
+        
+        drawString(str1,offsetx,offsety+3*fontHeight);
+        drawString(str2,offsetx,offsety+6*fontHeight);
+
+    }
+    if(type=="火车站"){
+        str0 = get_item("名称",n);
+        str1 = "过路费——";
+        str2 = "如购得一个车站\n如购得一个车站\n如购得一个车站\n如购得一个车站";
+        str3 = get_item("过路费",n);
+        str3 +="\n"+get_item("过路费1",n);
+        str3 +="\n"+get_item("过路费2",n);
+        str3 +="\n"+get_item("过路费3",n);
+
+        offsetx = xc-getStringWidth(str2)/5/2;
+        offsety = yc-radius+2*fontHeight;
+        drawString(str0,xc,offsety);
+        setJustification("right");
+        drawString(str1,offsetx,offsety+3*fontHeight);
+        setJustification("left");
+        drawString(str2,offsetx,offsety+3*fontHeight);
+        setJustification("right");
+        drawString(str3,offsetx+getStringWidth(str2)/2,offsety+3*fontHeight);
+
+    }
+    setJustification("center");
+    setColor(color);
 }
 function show_player_info(){
 
@@ -671,7 +743,7 @@ function count_player_areas(player,type){
 }
 function dice(){
     number = 1+floor(random*12) ;
-    //return 10;
+    //return 5;
     //return number;
     color=getValue("color.foreground");
 
