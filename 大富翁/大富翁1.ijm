@@ -67,10 +67,11 @@ function get_player_by_name(name){
     if(name==NAMES[3])return player3;
 }
 function get_player_by_idx(idx){
-    if(player0[IDX]==idx)return player0;
-    if(player1[IDX]==idx)return player1;
-    if(player2[IDX]==idx)return player2;
-    if(player3[IDX]==idx)return player3;
+    /* type of mix array will change dynamicly */
+    if(parseInt(player0[IDX])==idx)return player0;
+    if(parseInt(player1[IDX])==idx)return player1;
+    if(parseInt(player2[IDX])==idx)return player2;
+    if(parseInt(player3[IDX])==idx)return player3;
 }
 function load_players(){
     
@@ -120,12 +121,14 @@ function mainloop(){
     setOption("DisablePopupMenu", true);
 
     x2=-1; y2=-1; z2=-1; flags2=-1;
-    loop = 0;
+    loop = floor(random*4);
+    activate_player(loop);
+    show_player_info();
     while(1){
         getCursorLoc(x, y, z, flags);
         if (x!=x2 || y!=y2 || z!=z2 || flags!=flags2) {
             if (flags&leftButton!=0){
-                activate_player(loop);
+                //activate_player(loop);
                 for(i=0;i<NAMES.length;i++){
                     player = get_player_by_name(NAMES[i]);
                     name = NAMES[i];
