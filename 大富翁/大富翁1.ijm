@@ -361,7 +361,14 @@ function draw_icons(n){
     p = get_block_position(i);
     x=p[0];y=p[1];w=p[2];h=p[3];
     type = get_item("类别",n);
+    name = get_item("名称",n);
     if(type == "火车站")pasteIcon(x+w/2-cityWidth/4,y+2,"train.jpg");
+    if(type == "机会")pasteIcon(x+w/2-cityWidth/4,y+2,"chance.jpg");
+    if(type == "命运")pasteIcon(x+w/2-cityWidth/4,y+2,"destiny.jpg");
+    if(name == "电力公司")pasteIcon(x+w/2-cityWidth/4,y+2,"powerplant.jpg");
+    if(name == "自来水公司")pasteIcon(x+w/2-cityWidth/4,y+2,"water.jpg");
+    if(name == "所得税")pasteIcon(x+w/2-cityWidth/4,y+2,"tax2.jpg");
+    if(name == "财产税")pasteIcon(x+w/2-cityWidth/4,y+2,"tax1.jpg");
 }
 
 function get_block_position(n){
