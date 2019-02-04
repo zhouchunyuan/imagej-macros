@@ -68,10 +68,11 @@ function get_player_by_name(name){
 }
 function get_player_by_idx(idx){
     /* type of mix array will change dynamicly */
-    if(parseInt(player0[IDX])==idx)return player0;
-    if(parseInt(player1[IDX])==idx)return player1;
-    if(parseInt(player2[IDX])==idx)return player2;
-    if(parseInt(player3[IDX])==idx)return player3;
+    loop_idx = parseInt(idx);
+    if(parseInt(player0[IDX])==loop_idx)return player0;
+    if(parseInt(player1[IDX])==loop_idx)return player1;
+    if(parseInt(player2[IDX])==loop_idx)return player2;
+    if(parseInt(player3[IDX])==loop_idx)return player3;
 }
 function load_players(){
     
