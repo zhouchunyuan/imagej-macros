@@ -110,9 +110,22 @@ function move_player_to(player,position){
     player[POS]=position;
 }
 function activate_player(index){
-    for(i=0;i<NAMES.length;i++){
-        player = get_player_by_name(NAMES[i]);
-        player[DO]=(player[IDX]==index);
+    for(i=0;i<player_number;i++){
+        player = get_player_by_idx(i);
+        player[DO]=(i==index);
+        if(player[DO])flash_player(player);
+    }
+}
+function flash_player(player){
+    p = get_block_position(player[POS]);
+    x=p[0];y=p[1];w=p[2];h=p[3];
+    x_ = x+w/2-(player[IDX]%2)*player_icon_size;
+    y_ = y+h/2-floor(player[IDX]/2)*player_icon_size;
+    for(j=0;j<10;j++){ 
+        makeRectangle(x,y,w,h);
+        wait(100);
+        makeRectangle(x_,y_,player_icon_size,player_icon_size);
+        wait(100);
     }
 }
 function mainloop(){
@@ -209,8 +222,10 @@ function show_area_info(n){
     setColor("black");    
     run("Select None");
     type= get_item("类别",n);
+    str0 = get_item("名称",n);
+
     if(type=="商场"){
-        str0 = get_item("名称",n);
+        str0 += " $"+get_item("买价",n);
         str1 = "过路费——";
         str2 = "空地\n一幢房屋\n两幢房屋\n三幢房屋\n四幢房屋\n一幢旅馆";
         str2 +="\n房屋建筑费 每幢\n旅馆建筑费 每幢";
@@ -233,7 +248,7 @@ function show_area_info(n){
         drawString(str3,offsetx+getStringWidth(str2)/3,offsety+3*fontHeight);
     }
     if(type=="水电"){
-        str0 = get_item("名称",n);
+        str0 += " $"+get_item("买价",n);
         str1 = "凡拥有电力或水电公司者，其过\n路费得收取所转转盘数之十倍。";
         str2 = "凡拥有电力公司及自来水公司者，其\n过路费得收取所转转盘数之一百倍。";
 
@@ -246,7 +261,7 @@ function show_area_info(n){
 
     }
     if(type=="火车站"){
-        str0 = get_item("名称",n);
+        str0 += " $"+get_item("买价",n);
         str1 = "过路费——";
         str2 = "如购得一个车站\n如购得一个车站\n如购得一个车站\n如购得一个车站";
         str3 = get_item("过路费",n);
@@ -572,7 +587,7 @@ function is_occupied(position){
     }
     return false;
 }
-function open_dialog(player){
+function open_dialog1(player){
     ret = false;
 
     if(player[DO]){
@@ -607,6 +622,94 @@ Dialog.addRadioButtonGroup("Action", items, 5, 1, items[0]);
             exit();
         }
     }
+    return ret;
+}
+
+function open_dialog(player){
+    ret = false;
+
+    xc=mapWidth/2;yc=mapHeight/2;
+    radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
+    radius = radius*0.6;
+
+    if(player[DO]){
+        position = player[POS];
+        if(!is_occupied(position)){
+            items = newArray("Buy","Pass","Game over!");
+        }else{
+            items = newArray("Build House","Pass" ,"Game over!");
+        }
+
+        answer_overlay_index = newArray(items.length);
+        for(i=0;i<items.length;i++){
+            x1 = xc-cityWidth*(items.length/2.0-i);
+            y1 = yc+radius;
+            answer_overlay_index[i]=Overlay.size;
+            makeRectangle(x1,y1,cityWidth,fontHeight);
+            Overlay.addSelection("red");
+            color = getValue("color.foreground");
+            setColor("blue");
+            drawString(items[i],x1+cityWidth/2,y1+fontHeight);
+            setColor(color);
+        }
+
+        ans = "";
+
+        x2=-1; y2=-1; z2=-1; flags2=-1;
+        while(ans==""){
+            getCursorLoc(x, y, z, flags);
+            if (x!=x2 || y!=y2 || z!=z2 || flags!=flags2) {
+                if (flags&leftButton!=0){
+                    for(i=0;i<items.length;i++){
+                        Overlay.activateSelection(answer_overlay_index[i]);
+                        if(Roi.contains(x, y)){ans = items[i];}
+                    }
+
+                    
+                }
+                if (flags&rightButton!=0){
+                }
+                selectWindow("大富翁");
+                run("Select None");
+                x2=x; y2=y; z2=z; flags2=flags;
+                wait(10);
+            }
+            time = getTime()%200;
+            if(time > 100){
+                x1 = xc-cityWidth*(items.length/2.0);
+                y1 = yc+radius;
+                makeRectangle(x1,y1,cityWidth*items.length,fontHeight);
+            }else{
+                run("Select None");
+            }
+        }
+        if(ans == "Buy" ){
+            ret = buy_area(player);
+            
+        }
+        if(ans == "Build House"){
+            ret = build_house(player);
+ 
+        }
+        if(ans == "Sell House"){
+            remove_house(player);
+        }
+        if(ans == "Pass"){
+            ret = true;
+        }
+        if(ans == "Game over!"){
+            close("大富翁");
+            close("Results");
+            exit();
+        }
+        makeRectangle(xc-(items.length*cityWidth)/2,yc+radius,items.length*cityWidth,fontHeight);
+        setColor("white");
+        fill();
+        for(i=answer_overlay_index.length-1;i>=0;i--){
+            Overlay.removeSelection(answer_overlay_index[i]);
+        }
+    }
+    
     return ret;
 }
 
