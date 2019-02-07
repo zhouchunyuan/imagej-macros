@@ -19,6 +19,13 @@ colornames = newArray("粉","黄","紫","橙","红","蓝","棕","绿");
 colorcodes = newArray("#ffcccc","#cccc00","#9900ff","#cc2200","red","blue","#eeaa55","green");
 colorcodes2 = newArray("#eeaaaa","yellow","#ff00ff","#ff8800","#ffaaaa","#aaaabb","#aa8822","#aaffaa");
 
+var chances_name;
+var chances_cost;
+var chances_text;
+var destiny_name;
+var destiny_cost;
+var destiny_text;
+
 cityWidth = mapHeight/eqBlockNum;
 cityHeight = cityWidth*sqrt(2);
 cornerWidth = cityWidth*sqrt(2);
@@ -28,7 +35,11 @@ player_icon_size = cityWidth/2;
 house_icon_size = cityWidth/2;
 
 Choose_Players();
+load_chances_and_destiny();
 open("station_list.csv");
+Table.rename("Results","city list");
+title = Table.title;// new table is activated after this line.
+
 drawMap();
 load_players();
 mainloop();
@@ -113,7 +124,6 @@ function activate_player(index){
     for(i=0;i<player_number;i++){
         player = get_player_by_idx(i);
         player[DO]=(i==index);
-        if(player[DO])flash_player(player);
     }
 }
 function flash_player(player){
@@ -121,12 +131,23 @@ function flash_player(player){
     x=p[0];y=p[1];w=p[2];h=p[3];
     x_ = x+w/2-(player[IDX]%2)*player_icon_size;
     y_ = y+h/2-floor(player[IDX]/2)*player_icon_size;
-    for(j=0;j<10;j++){ 
+    time = getTime()%200;
+    if(time>100){
         makeRectangle(x,y,w,h);
-        wait(100);
+    }else{
         makeRectangle(x_,y_,player_icon_size,player_icon_size);
-        wait(100);
     }
+}
+function load_chances_and_destiny(){
+    open("chances.csv");
+    chances_name = Table.getColumn("【名称】");
+    chances_cost = Table.getColumn("【奖惩】");
+    chances_text = Table.getColumn("【说明】");
+    open("destiny.csv");
+    destiny_name = Table.getColumn("【名称】");
+    destiny_cost = Table.getColumn("【奖惩】");
+    destiny_text = Table.getColumn("【说明】");
+    close("Results");
 }
 function mainloop(){
     leftButton=16;
@@ -170,7 +191,7 @@ function mainloop(){
             x2=x; y2=y; z2=z; flags2=flags;
             wait(10);
 
-            /************ auto skip **************/
+      /************ auto skip **************/
             player = get_player_by_idx(loop);
             if(player[SKP]){
                 showMessage(player[NAME]+" skip once !");
@@ -181,12 +202,17 @@ function mainloop(){
             }
             
         }
+        for(i=0;i<player_number;i++){
+            player = get_player_by_idx(i);
+            if(player[DO])flash_player(player);
+        }
     }
 }
 function check_player_click(player,x,y){
     ret = false;
     selectionIndex = player[IDX];
     Overlay.activateSelection(selectionIndex );
+    wait(10);
     if(Roi.contains(x, y)){
         if(player[DO]){
             if(player[SKP]){
@@ -595,9 +621,9 @@ function open_dialog1(player){
         Dialog.create(player[NAME]+"@"+get_item("名称",player[POS]));
         Dialog.addMessage(get_item("名称",player[POS])+"\n$" + get_item("买价",player[POS]));
 if(!is_occupied(position)){
-    items = newArray("Buy","Pass","Game over!");
+    items = newArray("Buy","Pass","Finish!");
 }else{
-    items = newArray("Build House","Pass" ,"Game over!");
+    items = newArray("Build House","Pass" ,"Finish!");
 }
 Dialog.addRadioButtonGroup("Action", items, 5, 1, items[0]);
         Dialog.show();
@@ -616,7 +642,7 @@ Dialog.addRadioButtonGroup("Action", items, 5, 1, items[0]);
         if(ans == "Pass"){
             ret = true;
         }
-        if(ans == "Game over!"){
+        if(ans == "Finish!"){
             close("大富翁");
             close("Results");
             exit();
@@ -635,21 +661,24 @@ function open_dialog(player){
     if(player[DO]){
         position = player[POS];
         if(!is_occupied(position)){
-            items = newArray("Buy","Pass","Game over!");
+            items = newArray("Buy","Pass","Finish!");
         }else{
-            items = newArray("Build House","Pass" ,"Game over!");
+            items = newArray("Build House","Pass" ,"Finish!");
         }
 
         answer_overlay_index = newArray(items.length);
+        txtHeight = 1.5*fontHeight;
+        btnWidth = 2*radius/3;
+        setFont("SanSerif",txtHeight);
         for(i=0;i<items.length;i++){
-            x1 = xc-cityWidth*(items.length/2.0-i);
+            x1 = xc-btnWidth*(items.length/2.0-i);
             y1 = yc+radius;
             answer_overlay_index[i]=Overlay.size;
-            makeRectangle(x1,y1,cityWidth,fontHeight);
+            makeRectangle(x1,y1,btnWidth,txtHeight );
             Overlay.addSelection("red");
             color = getValue("color.foreground");
             setColor("blue");
-            drawString(items[i],x1+cityWidth/2,y1+fontHeight);
+            drawString(items[i],x1+btnWidth/2,y1+txtHeight );
             setColor(color);
         }
 
@@ -662,6 +691,7 @@ function open_dialog(player){
                 if (flags&leftButton!=0){
                     for(i=0;i<items.length;i++){
                         Overlay.activateSelection(answer_overlay_index[i]);
+                        wait(10);
                         if(Roi.contains(x, y)){ans = items[i];}
                     }
 
@@ -676,12 +706,13 @@ function open_dialog(player){
             }
             time = getTime()%200;
             if(time > 100){
-                x1 = xc-cityWidth*(items.length/2.0);
+                x1 = xc-btnWidth*(items.length/2.0);
                 y1 = yc+radius;
-                makeRectangle(x1,y1,cityWidth*items.length,fontHeight);
+                makeRectangle(x1,y1,btnWidth*items.length,txtHeight );
             }else{
                 run("Select None");
             }
+
         }
         if(ans == "Buy" ){
             ret = buy_area(player);
@@ -697,22 +728,114 @@ function open_dialog(player){
         if(ans == "Pass"){
             ret = true;
         }
-        if(ans == "Game over!"){
+        if(ans == "Finish!"){
             close("大富翁");
-            close("Results");
+            close("city list");
             exit();
         }
-        makeRectangle(xc-(items.length*cityWidth)/2,yc+radius,items.length*cityWidth,fontHeight);
+        makeRectangle(xc-(items.length*btnWidth)/2,yc+radius,items.length*btnWidth,txtHeight);
         setColor("white");
         fill();
         for(i=answer_overlay_index.length-1;i>=0;i--){
             Overlay.removeSelection(answer_overlay_index[i]);
         }
     }
-    
+    setFont("SanSerif",fontHeight);
     return ret;
 }
+function do_chance_destiny(type){
 
+    color=getValue("color.foreground");
+
+    xc=mapWidth/2;yc=mapHeight/2;
+    radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
+    radius = radius*0.6;
+    setColor("white");
+    fillRect(xc-radius, yc-radius, radius*2, radius*2);
+    
+    setColor("black");    
+    run("Select None");
+    if(type=="机会"){
+        i = floor(random*chances_name.length);
+        str0 = chances_name[i];
+        str1 = chances_cost[i];
+        str2 = chances_text[i];
+    }
+    if(type=="命运"){
+        i = floor(random*destiny_name.length);
+        str0 = destiny_name[i];
+        str1 = destiny_cost[i];
+        str2 = destiny_text[i];
+    }    
+    offsetx = xc-getStringWidth(str2)/5/2;
+    offsety = yc-radius+2*fontHeight;
+    drawString(str0,xc,offsety);
+    drawString(str1,xc,offsety+3*fontHeight);
+
+    loop_str(str2);
+
+    setJustification("center");
+    setColor(color);
+    setFont("SansSerif",fontHeight);
+   
+}
+function loop_str(str){
+    ret = false;
+
+    xc=mapWidth/2;yc=mapHeight/2;
+    radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
+    radius = radius*0.6;
+
+    x1 = xc;
+    y1 = yc+radius;
+    button_overlay_index=Overlay.size;
+    makeRectangle(x1-cityWidth,y1,2*cityWidth,fontHeight*3);
+    Overlay.addSelection("gray");
+    color = getValue("color.foreground");
+    setColor("blue");
+    drawString("OK",x1,y1+fontHeight*2);
+
+    windowSize = 15;
+    loopSize = lengthOf(str2)-windowSize;
+    txtY = yc+6*fontHeight;
+    txtHeight = fontHeight*1.5;
+    setFont("SansSerif", txtHeight);
+    loopIndex = 0;time=0;time1=0;dt = 200;
+
+    ans="";str = "           "+str + "    ^_^     ";
+    x2=-1; y2=-1; z2=-1; flags2=-1;
+    while(ans==""){
+        getCursorLoc(x, y, z, flags);
+        if (x!=x2 || y!=y2 || z!=z2 || flags!=flags2) {
+            if (flags&leftButton!=0){
+                Overlay.activateSelection(button_overlay_index);
+                wait(10);
+                if(Roi.contains(x, y)){ans = "OK";}
+                ret = true;
+            }
+        }
+        time = getTime()%dt*2;
+        if(time > dt && time1 <= dt){
+            msg = substring(str,loopIndex,loopIndex+windowSize);
+            loopIndex = loopIndex+1;
+            if(loopIndex > lengthOf(str)-windowSize)loopIndex=0;
+            txtWidth = getStringWidth(str)/(lengthOf(str))*20;
+            setColor("white");
+            fillRect(xc-txtWidth/2,txtY-txtHeight-2,txtWidth,txtHeight+4);
+            setColor("black");
+            drawString(msg,xc,txtY);
+        }
+        time1 = time;
+
+    }
+    Overlay.removeSelection(button_overlay_index);
+    setColor("white");
+    makeRectangle(x1-cityWidth,y1,2*cityWidth,fontHeight*3);
+    fill();
+    run("Select None");
+
+    return ret;
+}
 function check_events(player,start,stop){
     ret = true;
     prison_number = 10;
@@ -755,6 +878,7 @@ function check_events(player,start,stop){
         ret = true;      
     }
     if(stop != start && (type=="机会" || type=="命运")){ 
+        do_chance_destiny(type);
         fee = 500-round(1000*random);
         if(fee>0){
             msg=":-)\n lucky! \n" +player[NAME]+" get $";
@@ -857,7 +981,7 @@ function count_player_areas(player,type){
 }
 function dice(){
     number = 1+floor(random*12) ;
-    //return 5;
+    //return 7;
     //return number;
     color=getValue("color.foreground");
 
