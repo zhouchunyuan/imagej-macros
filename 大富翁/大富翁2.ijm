@@ -1,7 +1,8 @@
-IDX=0;NAME=1;PIC=2;POS=3;MNY=4;PRISON=5;SKP=6;DO=7;ROOM=8;KEY=9;FAIL=10; //player=(NAME,POS,MNY,PRISON)
+IDX=0;NAME=1;PIC=2;POS=3;MNY=4;PRISON=5;SKP=6;DO=7;ROOM=8;KEY=9;FAIL=10;//player=(NAME,POS,MNY,PRISON)
 var INIT_MONEY = 20000;
 var IN_PRISON = true;
 var IN_SKIP = true;
+var PLAY_SOUND = false;
 
 var NAMES = newArray("撒","何","白","娜");
 var player0 = newArray(0,NAMES[0],"a.JPG",0,INIT_MONEY,!IN_PRISON,!IN_SKIP,true,0,0,0);//(name,current postion, money,in_prison,in_skip)
@@ -9,6 +10,7 @@ var player1 = newArray(1,NAMES[1],"b.JPG",0,INIT_MONEY,!IN_PRISON,!IN_SKIP,false
 var player2 = newArray(2,NAMES[2],"c.JPG",0,INIT_MONEY,!IN_PRISON,!IN_SKIP,false,0,0,0);
 var player3 = newArray(3,NAMES[3],"d.JPG",0,INIT_MONEY,!IN_PRISON,!IN_SKIP,false,0,0,0);
 var player_number = 4;
+
 
 
 mapWidth = 1300;
@@ -53,9 +55,12 @@ function set_player_idx(idx,order){
 }
 function Choose_Players(){
     Dialog.create("Choose players");
+    defaults = newArray(NAMES.length);
     for(i=0;i<NAMES.length;i++){
-        Dialog.addCheckbox(NAMES[i],true);
-    } 
+        defaults[i]=true;
+    }
+    Dialog.addCheckboxGroup(4,1,NAMES,defaults); 
+    Dialog.addCheckbox("play sound",PLAY_SOUND);
     Dialog.show();
 
     idx = 0;
@@ -70,6 +75,7 @@ function Choose_Players(){
         }
     }
     player_number = idx;
+    PLAY_SOUND = Dialog.getCheckbox();
 }
 function get_player_by_name(name){
     if(name==NAMES[0])return player0;
@@ -79,7 +85,7 @@ function get_player_by_name(name){
 }
 function get_player_by_idx(idx){
     /* type of mix array will change dynamicly */
-//print(parseInt(idx));
+
     if(parseInt(player0[IDX])==parseInt(idx))return player0;
     if(parseInt(player1[IDX])==parseInt(idx))return player1;
     if(parseInt(player2[IDX])==parseInt(idx))return player2;
@@ -147,6 +153,7 @@ function mainloop(){
     while(1){
         getCursorLoc(x, y, z, flags);
         if (x!=x2 || y!=y2 || z!=z2 || flags!=flags2) {
+
             if (flags&leftButton!=0){
                 //activate_player(loop);
                 for(i=0;i<NAMES.length;i++){
@@ -178,8 +185,14 @@ function mainloop(){
 
       /************ auto skip **************/
             player = get_player_by_idx(loop);
+
+            if(player[FAIL]){
+                loop=(loop+1)%player_number;
+                activate_player(loop);
+                show_player_info();
+            }
             if(player[SKP]){
-                showMessage(player[NAME]+" skip once !");
+                show_message(player[NAME]," skip once !");
                 player[SKP] = false;
                 loop = (loop+1)%player_number;
                 activate_player(loop);
@@ -212,10 +225,11 @@ function check_player_click(player,x,y){
                 }
                 player[POS] = stop%totalBlocks ;
                 show_area_info(player[POS]);
+play_sound("dice");
                 ret = check_events(player,start,stop);
             }
         }else{
-            showMessage("It is not your turn !");
+            show_message("wrong player","It is not your turn !");
         }
     }
     return ret;
@@ -294,6 +308,132 @@ function show_area_info(n){
     setJustification("center");
     setColor(color);
 }
+function get_home_points(index){
+    play_area_width = eqBlockNum * cityWidth;
+    info_area_width = (mapWidth-play_area_width)/2;
+    x_left = info_area_width/2;
+    x_right = mapWidth - info_area_width/2;
+
+    txtHeight = 3*fontHeight;
+    if(index == 0){x=x_left;y=txtHeight;}
+    if(index == 1){x=x_right;y=txtHeight;}
+    if(index == 2){x=x_left;y=mapHeight/2+txtHeight;} 
+    if(index == 3){x=x_right;y=mapHeight/2+txtHeight;}
+    nameWidth = getStringWidth(NAMES[index]);
+    return newArray(x+nameWidth,y-txtHeight);
+}
+function get_choice(title,lines){
+    leftButton=16;
+    rightButton=4;
+
+    xc=mapWidth/2;yc=mapHeight/2;
+    radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
+
+    x1 = xc+radius;
+    x2 = xc-radius-cityWidth;
+    y1 = yc+radius;
+
+    setColor("#eeaaaa");
+    fillRect(xc-radius, y1, radius*2, fontHeight*3);
+
+    yes_overlay_index=Overlay.size;
+    makeRectangle(x1,y1,cityWidth,fontHeight*3);
+    Overlay.addSelection("gray");
+    color = getValue("color.foreground");
+    setColor("blue");
+    drawString("YES",x1+cityWidth/2,y1+fontHeight*2);
+
+    no_overlay_index=Overlay.size;
+    makeRectangle(x2,y1,cityWidth,fontHeight*3);
+    Overlay.addSelection("gray");
+    color = getValue("color.foreground");
+    setColor("blue");
+    drawString("NO",x2+cityWidth/2,y1+fontHeight*2);
+
+    txtHeight = fontHeight*1.5;
+    setFont("SansSerif", txtHeight);
+    setJustification("left");
+    drawString(title+":",xc-radius,y1+1.5*txtHeight);
+    drawString(lines,xc-radius+getStringWidth(title+":"),y1+1.5*txtHeight);
+
+    ans="";str = "           "+str + "    ^_^     ";
+    x2=-1; y2=-1; z2=-1; flags2=-1;
+    while(ans==""){
+        getCursorLoc(x, y, z, flags);
+        if (x!=x2 || y!=y2 || z!=z2 || flags!=flags2) {
+            if (flags&leftButton!=0){
+                wait(100);
+                Overlay.activateSelection(yes_overlay_index);
+                wait(10);
+                if(Roi.contains(x, y)){ans = "yes";}
+                Overlay.activateSelection(no_overlay_index);
+                wait(10);
+                if(Roi.contains(x, y)){ans = "no";}
+            }
+        }
+        x2=x; y2=y; z2=z; flags2=flags;
+    }
+    Overlay.removeSelection(no_overlay_index);
+    Overlay.removeSelection(yes_overlay_index);
+    setColor("white");
+    makeRectangle(xc-radius-cityWidth,y1,2*radius+2*cityWidth,fontHeight*3);
+    fill();
+    setJustification("center");
+    run("Select None");
+
+    return ans;
+}
+function show_message(title,lines){
+    leftButton=16;
+    rightButton=4;
+
+    xc=mapWidth/2;yc=mapHeight/2;
+    radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
+
+    x1 = xc+radius;
+    y1 = yc+radius;
+
+    setColor("#eeaaaa");
+    fillRect(xc-radius, y1, radius*2, fontHeight*3);
+
+    button_overlay_index=Overlay.size;
+    makeRectangle(x1,y1,cityWidth,fontHeight*3);
+    Overlay.addSelection("gray");
+    color = getValue("color.foreground");
+    setColor("blue");
+    drawString("OK",x1+cityWidth/2,y1+fontHeight*2);
+
+
+    txtHeight = fontHeight*1.5;
+    setFont("SansSerif", txtHeight);
+    setJustification("left");
+    drawString(title+":",xc-radius,y1+1.5*txtHeight);
+    drawString(lines,xc-radius+getStringWidth(title+":"),y1+1.5*txtHeight);
+
+    ans="";str = "           "+str + "    ^_^     ";
+    x2=-1; y2=-1; z2=-1; flags2=-1;
+    while(ans==""){
+        getCursorLoc(x, y, z, flags);
+        if (x!=x2 || y!=y2 || z!=z2 || flags!=flags2) {
+            if (flags&leftButton!=0){
+                wait(100);
+                Overlay.activateSelection(button_overlay_index);
+                wait(10);
+                if(Roi.contains(x, y)){ans = "OK";}
+                ret = true;
+            }
+        }
+        x2=x; y2=y; z2=z; flags2=flags;
+    }
+    Overlay.removeSelection(button_overlay_index);
+    setColor("white");
+    makeRectangle(xc-radius,y1,2*radius+cityWidth,fontHeight*3);
+    fill();
+    setJustification("center");
+    run("Select None");
+
+    return ret;
+}
 function show_player_info(){
 
     play_area_width = eqBlockNum * cityWidth;
@@ -311,7 +451,8 @@ function show_player_info(){
         if(i == 2){x=x_left;y=mapHeight/2+txtHeight;} 
         if(i == 3){x=x_right;y=mapHeight/2+txtHeight;}
         name = player[NAME];
-        money = ""+player[MNY];   
+        money = ""+player[MNY];
+  
         setColor("white");
         fillRect(x-info_area_width/2, 
              y-txtHeight, 
@@ -326,20 +467,7 @@ function show_player_info(){
         x_key = x+getStringWidth(name);
         y_key = y-txtHeight;
         if(player[KEY]==1){
-            key_num = 0;
-            for(j=0;j<Overlay.size;j++){
-                Overlay.activateSelection(j);
-                wait(10);
-                Roi.getBounds(x0, y0, w, h);
-                if(abs(x_key-x0)<10 && abs(y_key-y0)<10){
-                    key_num = 1;
-                    break;
-                } 
-            }
-            if(key_num==0){
-                add_img("key.JPG",x_key,y_key,
-                                txtHeight,txtHeight);
-            }
+            add_img("key.JPG",x_key,y_key,txtHeight,txtHeight);
         }else{
             setColor("white");
             fillRect(x_key,y_key,txtHeight,txtHeight);
@@ -350,11 +478,13 @@ function show_player_info(){
 }
 function add_img(name,x,y,w,h){
     open(name);
-    run("Size...", "width=&w height=&h average interpolation=Bilinear");
+    wi= parseInt(w);
+    hi= parseInt(h);
+    run("Size...", "width=&wi height=&hi average interpolation=Bilinear");
     run("Select All");
     run("Copy");
     selectWindow("大富翁");
-    makeRectangle(x,y,w,h);
+    makeRectangle(x,y,wi,hi);
     run("Paste");
     close(name);  
 }
@@ -438,7 +568,33 @@ function draw_icons(n){
     if(name == "所得税")pasteIcon(x+w/2-cityWidth/4,y+2,"tax2.jpg");
     if(name == "财产税")pasteIcon(x+w/2-cityWidth/4,y+2,"tax1.jpg");
 }
+function get_position_from_xy(x,y){
+    mapCenterX = mapWidth/2;mapCenterY = mapHeight/2;
+    w = cityWidth*sqrt(2);h=w;
 
+    n=-1;
+
+    x3 = mapCenterX+cityWidth*eqBlockNum/2;
+    x2 = x3 -w;
+    x0 = mapCenterX-cityWidth*eqBlockNum/2;
+    x1 = x0 +w;
+
+    y3 = mapCenterY+cityWidth*eqBlockNum/2;
+    y2 = y3-h;
+    y0 = mapCenterY-cityWidth*eqBlockNum/2;
+    y1 = y0+h;
+    if((x> x2) && (x< x3)){
+        n = floor(35+(y-mapCenterY+cityWidth/2)/cityWidth);
+    }else if((x> x0) && (x< x1)){
+        n = floor(15-(y-mapCenterY-cityWidth/2)/cityWidth);
+    }else if((y> y0) && (y< y1) && (x>x0) && (x<x3)){
+        n = floor(25+(x-mapCenterX+cityWidth/2)/cityWidth);
+    }else if((y> y2) && (y< y3) && (x>x0) && (x<x3)){
+        n = floor(5-(x-mapCenterX-cityWidth/2)/cityWidth);
+    }
+
+    return n%40;
+}
 function get_block_position(n){
 
     side = floor(n/10);
@@ -563,56 +719,76 @@ function build_house(player,n,free){
     owner_name = Table.getString("地主",position);
     
     if( owner_name!=player[NAME] ){
-        showMessage("It does not belong to you !");
+        show_message("Can not build","It does not belong to you !");
         return ret;
     }
     type = get_item("类别",position);
     if(type=="商场"){
-        price = parseInt(get_item("建房费",position));
-        currentMoney = player[MNY];
-        if(currentMoney > price){
-            run("Select None");
-            num_house = parseInt(get_item("房间数",position));
-            if(isNaN(num_house))num_house=0;
-            if(num_house<4){
-                player_name = player[NAME];
+        done=false;
+        while(!done){
+            price = parseInt(get_item("建房费",position));
+            currentMoney = player[MNY];
+            if(currentMoney > price || free){
+                run("Select None");
+                num_house = parseInt(get_item("房间数",position));
+                if(isNaN(num_house))num_house=0;
+                if(num_house<4){
+                    player_name = player[NAME];
 
-                num_house=num_house+1;
-                Table.set("房间数",position,num_house);
-                Table.update;
-                player[ROOM]=parseInt(player[ROOM])+1;
-                if(!free)player[MNY]=currentMoney - price;
+                    num_house=num_house+1;
+                    Table.set("房间数",position,num_house);
+                    Table.update;
+                    player[ROOM]=parseInt(player[ROOM])+1;
+                    if(!free)player[MNY]=currentMoney - price;
                 
-                if(num_house==1){
-                    if(player_name== NAMES[0])houseName = "housea.JPG";
-                    if(player_name== NAMES[1])houseName = "houseb.JPG";
-                    if(player_name== NAMES[2])houseName = "housec.JPG";
-                    if(player_name== NAMES[3])houseName = "housed.JPG";
-                    add_img_overlay(houseName,x,y,house_icon_size,house_icon_size);
+                    if(num_house==1){
+                        if(player_name== NAMES[0])houseName = "housea.JPG";
+                        if(player_name== NAMES[1])houseName = "houseb.JPG";
+                        if(player_name== NAMES[2])houseName = "housec.JPG";
+                        if(player_name== NAMES[3])houseName = "housed.JPG";
+                        add_img_overlay(houseName,x,y,house_icon_size,house_icon_size);
+                    }else{
+                        setJustification("left");
+                        setFont("SansSerif", fontHeight);
+                        str = "x"+num_house;
+                        run("Select None");
+                        setForegroundColor(255,255,255);
+                        makeRectangle(x+house_icon_size,y,getStringWidth(str),fontHeight);
+                        fill();
+                        setColor("black");
+                        drawString(str,x+house_icon_size,y+fontHeight);
+                        setJustification("center");
+                    }
+                    ret = true;
+                    done = true;
+
                 }else{
-                    setJustification("left");
-                    setFont("SansSerif", fontHeight);
-                    str = "x"+num_house;
-                    run("Select None");
-                    setForegroundColor(255,255,255);
-                    makeRectangle(x+house_icon_size,y,getStringWidth(str),fontHeight);
-                    fill();
-                    setColor("black");
-                    drawString(str,x+house_icon_size,y+fontHeight);
-                    setJustification("center");
+                    show_message("Can't build here","Maximum house number is 4 !");
+                    done = true;
                 }
-                ret = true;
 
+                //show_player_info();
             }else{
-                showMessage("Maximum house number is 4 !");
+                ans = get_choice("Not enough money","Do you want to sell area?");
+                if(ans=="yes"){
+                    blockNumber = sell_area(player);
+                    if(blockNumber == position){
+                        show_message("Sorry"," You sold the current area!");
+                        done = true;
+                    }else if(blockNumber == -1){
+                        show_message（"No area sold","Give up building.");
+                        done = true;
+                    }else{
+                        done = false;
+                    }
+                }
+                if(ans=="no"){
+                    done = true;
+                }
             }
-
-            //show_player_info();
-        }else{
-            showMessage("Not enough money!");
         }
     }else{
-        showMessage("It is NOT an area for buildings!");
+        show_message("Impossible","It is NOT an area for buildings!");
     }
     return ret;
 }
@@ -627,7 +803,7 @@ function buy_area(player){
         if( !is_occupied(position) ){
             price = parseInt(get_item("买价",position));
             currentMoney = player[MNY];
-            if(currentMoney > price){
+            if(currentMoney >= price){
                 player[MNY]=currentMoney - price;
                 name=player[NAME];
                 Table.set("地主",position,name);
@@ -636,13 +812,135 @@ function buy_area(player){
                 //show_player_info();
                 ret = true;
             }else{
-                showMessage("Not enough money!");
+                show_message("Can't buy","Not enough money!");
+                ret = true;
             }
         }else{
-            showMessage("Occupied already!");
+            show_message("Impossible","Occupied already!");
         }
     }else{
-        showMessage("Area NOT for sale !");
+        show_message("error","Area NOT for sale !");
+    }
+    return ret;
+}
+
+
+function display_at_center_area(str,strcolor,time){
+    color=getValue("color.foreground");
+    fontSize = getValue("font.size");
+
+    xc=mapWidth/2;yc=mapHeight/2;
+    radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
+    radius = radius*0.6;
+    setColor("white");
+    fillOval(xc-radius, yc-radius, radius*2, radius*2);
+
+    setColor(strcolor);    
+    //run("Select None");
+    setFont("SansSerif",2*fontHeight);
+    w = getStringWidth(str);
+    if(w<radius*2){
+        drawString(str,xc,yc);
+    }else{
+        setJustification("right");
+        x = xc+radius-5;y=yc;
+        l = lengthOf(str);
+        for(i=l-1;i>0;i--){
+            w=getStringWidth( substring(str,0,i) );
+            if(w<radius*2)break;
+        }
+        if(time%(l+i)<=i)
+        {
+            start = 0;
+            end = time%i;
+        }else{
+            setJustification("left");
+            x = xc-radius;
+            start = time%(l+i)-i;
+            end = start+i;
+            if(end>l-1)end=l-1;
+        }
+
+        drawString(substring(str,start,end),x,y);
+        
+    }
+
+    setJustification("center");
+    setColor(color);
+    setFont(getInfo("font.name"),fontSize);
+}
+function sell_area(player){
+    ret = -1;
+    leftButton=16;
+    rightButton=4;
+    time = 0;
+    str = "Please select area to sell...";
+    color = "red";
+    done = false;
+
+    for(i=0;i<Table.size;i++){
+        t = get_item("类别",i);
+        owner_name = get_item("地主",i);
+        if(t =="商场"&& owner_name==player[NAME] )break;
+    }
+    if(i==Table.size)return ret;
+
+    x2=-1; y2=-1; z2=-1; flags2=-1;n2=-1;
+    while(!done){
+        
+        getCursorLoc(x, y, z, flags);
+        if (x!=x2 || y!=y2 || z!=z2 || flags!=flags2) {
+            n = get_position_from_xy(x,y);
+            if(n2 !=n )time = 0;
+            if(n!=-1){
+               p = get_block_position(n);
+                makeRectangle(p[0],p[1],p[2],p[3]);
+                title = get_item("名称",n);
+                price = parseInt(get_item("卖价",n));
+                if(isNaN(price))price=0;
+                if(price>0){
+                    color="red";
+                    str=title+" : 卖价 "+price;
+                }else{
+                    color="black";
+                    str=title+" : not for sale! ";
+                }
+
+          
+                n2=n;
+            }
+            if (flags&leftButton!=0 && n!=-1){
+                owner_name = get_item("地主",n);
+                t = get_item("类别",n);
+                if(t == "商场"&& owner_name == player[NAME] ){
+                    show_message(get_item("名称",n),"将以"+price+"价格卖出！");
+                
+                    room_num = parseInt(get_item("房间数",n));
+                    if(isNaN(room_num))room_num=0;
+                    if(room_num>0){
+                        for(j=0;j<room_num;j++){
+                            remove_house(i);
+                        }
+                    }
+                    clear_mark(n,player);
+                    player[MNY]=player[MNY]+price;
+                    Table.set("房间数",n,0);
+                    Table.set("旅馆数",n,0);
+                    Table.set("地主",n,"");
+                    Table.update;
+                    done = true;
+                    ret = n;
+                }
+            }
+            if(n==-1)str = "Please select area to sell...";
+         
+            selectWindow("大富翁");
+            //run("Select None");
+            x2=x; y2=y; z2=z; flags2=flags;
+            wait(10);
+         }
+         if(n2==n){time++;wait(100);}
+         display_at_center_area(str,color,time);
     }
     return ret;
 }
@@ -662,8 +960,26 @@ function draw_mark(n,player){
     if(side==1){x1=x+w+markWidth/2+1;y1=y+h/2+txtHeight/2;}
     if(side==2){x1=x+w/2;y1=y+h+txtHeight;}
     if(side==3){x1=x-markWidth/2;y1=y+h/2+txtHeight/2;}
-    Overlay.drawString(player[NAME],x1,y1);
+    drawString(player[NAME],x1,y1);
     setFont("SansSerif",fontHeight );
+}
+function clear_mark(n,player){
+    setColor("white");
+    txtHeight = 1.5*fontHeight;
+    setFont("SansSerif",txtHeight);
+
+    selectWindow("大富翁");
+    p = get_block_position(n);
+    x=p[0];y=p[1];w=p[2];h=p[3];
+    side = floor(n/10);
+    x1 = x; y1 = y;
+    markWidth=getStringWidth(player[NAME]);
+    if(side==0){x1=x+w/2;y1=y;}
+    if(side==1){x1=x+w+markWidth/2+1;y1=y+h/2+txtHeight/2;}
+    if(side==2){x1=x+w/2;y1=y+h+txtHeight;}
+    if(side==3){x1=x-markWidth/2;y1=y+h/2+txtHeight/2;}
+    fillRect(x1-markWidth/2,y1-txtHeight-1,markWidth,txtHeight);
+
 }
 function is_occupied(position){
     owner_name = get_item("地主",position);
@@ -769,9 +1085,8 @@ function open_dialog(player){
     return ret;
 }
 function do_chance_destiny(type){
-
+    xc=mapWidth/2;yc=mapHeight/2;
     color=getValue("color.foreground");
-
     xc=mapWidth/2;yc=mapHeight/2;
     radius = eqBlockNum * cityWidth /2 - 2*cityHeight;
     radius = radius*0.6;
@@ -873,9 +1188,52 @@ function go_to_prison(player){
         player[KEY]=0;
     } 
 }
-function fails_and_exit(player){
+function fails_and_exit(player,money2pay){
+    ret = false;
+    no_money = false;
+    currentMoney = parseInt(player[MNY]);
+    if(isNaN(currentMoney))currentMoney=0;
+    while(currentMoney<money2pay){
+        show_message("You need "+(money2pay-currentMoney), " you can sell area to get money...");
+        r = sell_area(player);
+        if(r==false){
+            no_money = true;
+            break;
+        }
+        currentMoney = parseInt(player[MNY]);
+        if(isNaN(currentMoney))currentMoney=0; 
+        show_player_info();       
+    }
+    if(no_money){
+        show_message(player[NAME]," fails !!!");
+        for(i=0;i<Table.size;i++){
+            owner_name = get_item("地主",i);
+        
+            if(owner_name == player[NAME]){
+                room_num = parseInt(get_item("房间数",i));
+                if(isNaN(room_num))room_num=0;
+                if(room_num>0){
+                    for(j=0;j<room_num;j++){
+                        remove_house(i);
+                    }
+                }
+                Table.set("房间数",i,0);
+                Table.set("地主",i,"");
+                Table.update;
+                clear_mark(i);
+            }
+        }
+        player[FAIL]=true;
+        p = get_home_points(player[IDX]);
+        Overlay.moveSelection(player[IDX], p[0], p[1]);
+        
+        ret = true;
+    }
 
+    return ret;
+        
 }
+
 function check_events(player,start,stop){
     ret = true;
     numberOfStop = Table.size;
@@ -889,13 +1247,14 @@ function check_events(player,start,stop){
     }
     if(start<numberOfStop && stop >numberOfStop ){
         if(player[PRISON]!=IN_PRISON){
-            showMessage(player[NAME]+" get 2000 dolar!!");
+            show_message(player[NAME]," get 2000 dolar!!");
             player[MNY]=player[MNY]+2000;
+            show_player_info();
         }else{
             player[PRISON]=!IN_PRISON;
         }
         ret = true;
-        //print(player[NAME],player[PRISON],start,stop,player[MNY]);
+
     }
     if(stop != start && type=="停车"){ 
         player[SKP]=true;
@@ -905,18 +1264,21 @@ function check_events(player,start,stop){
     if(stop != start && type=="税收"){ 
         if(title=="所得税")fee = 2000;
         if(title=="财产税")fee = 1000;
-        currentMoney = player[MNY];
-        if(currentMoney > fee){
-            showMessage(player[NAME]+" pay "+fee+" tax fee!");
+        
+        fail = fails_and_exit(player,fee);
+        if(!fail){
+            show_message(player[NAME]," pay "+fee+" tax fee!");
+            currentMoney = parseInt(player[MNY]);
+            if(isNaN(currentMoney))currentMoney=0;
             player[MNY]=currentMoney - fee;
         }else{
-            showMessage(player[NAME]+" fails !!!");
+          
         }
         ret = true;      
     }
     if(stop != start && (type=="机会" || type=="命运")){ 
         n = do_chance_destiny(type);
-        //n =9;
+        //n =1;
         change_money = 0;
         max_house_num = 0;
         min_house_num = 4;
@@ -924,17 +1286,21 @@ function check_events(player,start,stop){
         if(type=="命运"){
             if(n==0)change_money = 850;
             if(n==2){
-                num_room=0;
-                num_hotel=0;
+                tot_num_room=0;
+                tot_num_hotel=0;
                 for(i=0;i<Table.size;i++){
                     owner_name = get_item("地主",i);
                     if(owner_name == player[NAME]){
-                        num_room = num_room + parseInt(get_item("房间数",i));
-                        num_hotel = num_hotel + parseInt(get_item("旅馆数",i));
+                        room_num  = parseInt(get_item("房间数",i));
+                        if(isNaN(room_num))room_num=0;
+                        hotel_num = parseInt(get_item("旅馆数",i));
+                        if(isNaN(hotel_num))hotel_num=0;
+                        tot_num_room = tot_num_room + room_num;
+                        tot_num_hotel = tot_num_hotel + hotel_num;
                     }
                 }
-                change_money = num_room*(-200);
-                change_money = change_money+num_hotel*(-600);            
+                change_money = tot_num_room*(-200);
+                change_money = change_money+tot_num_hotel*(-600);            
             }
             if(n==4)change_money = 900;
             if(n==5)change_money = 800;
@@ -943,25 +1309,29 @@ function check_events(player,start,stop){
             if(n==9)change_money = -500;
             if(n==10)change_money = 600;
             if(n==11)change_money = 1000;
-            if(player[MNY] + change_money >= 0){
-                player[MNY]=player[MNY] + change_money;
-            }else{
-                showMessage(player[NAME]+" fails !!!");
+            fail = fails_and_exit(player,-change_money);
+            currentMoney = parseInt(player[MNY]);
+            if(isNaN(currentMoney))currentMoney=0;
+            if(!fail){
+                player[MNY]=currentMoney + change_money;
             }
+
             if(n==1){
                 offset = floor(Table.size*random);
                 for(i=0;i<Table.size;i++){
                     pos = (offset+i)%Table.size;
                     owner_name = get_item("地主",pos);
-                    if(owner_name == player[NAME]){
+                    t = get_item("类别",pos);
+                    if(owner_name == player[NAME] && t =="商场"){
                         room_num = parseInt(get_item("房间数",pos));
+                        if(isNaN(room_num))room_num=0;
                         if(room_num<4){
                             build_house(player,pos,true);
                             break;
                         }
                     }
                 }
-                if(i==Table.size)showMessage("No area to build!");
+                if(i==Table.size)show_message("It's a pity","No area to build!");
             }
             if(n==3){
                 player[SKP]=true;
@@ -971,12 +1341,18 @@ function check_events(player,start,stop){
                     the_player = get_player_by_idx(i);
                      name = the_player[NAME];
                     if(name!=player[NAME]){
-                        if(player[MNY]-100>=0){
-                            player[MNY]=player[MNY]-100;
-                            the_player[MNY]=the_player[MNY]+100;
+                        fail = fails_and_exit(player,100);
+                        currentMoney = parseInt(player[MNY]);
+                        if(isNaN(currentMoney))currentMoney=0;
+                        if(!fail){
+                            player[MNY]=currentMoney - 100;
+                            the_player_money = parseInt(the_player[MNY]);
+                            if(isNaN(the_player_money))the_player_money=0;
+                            the_player[MNY]=the_player_money+100;
                         }else{
-                            showMessage(player[NAME]+" fails !!!");
+                            the_player[MNY]=the_player_money+currentMoney;
                         }
+
                     }
                 }
             }
@@ -986,10 +1362,12 @@ function check_events(player,start,stop){
             if(n==3)change_money = 600;
             if(n==5)change_money = -600;
             if(n==11)change_money = -1200;
-            if(player[MNY] + change_money >= 0){
-                player[MNY]=player[MNY] + change_money;
-            }else{
-                showMessage(player[NAME]+" fails !!!");
+
+            fail = fails_and_exit(player,-change_money);
+            currentMoney = parseInt(player[MNY]);
+            if(isNaN(currentMoney))currentMoney=0;
+            if(!fail){
+                player[MNY]=currentMoney + change_money;
             }
             if(n==1){
                 for(j=0;j<player_number;j++){
@@ -1030,10 +1408,11 @@ function check_events(player,start,stop){
                         for(i=0;i<Table.size;i++){
                             pos = (offset+i)%Table.size;
                             room_num = parseInt(get_item("房间数",pos));
+                            t = get_item("类别",pos);
                             if(isNaN(room_num))room_num = 0;
                             if(player_name == get_item("地主",pos) &&
-                               room_num<4){
-                               build_house(the_player,pos,false);//build house non_free
+                               t == "商场" && room_num<4){
+                               build_house(the_player,pos,true);//build house non_free
                             }
                         }
                     }
@@ -1055,9 +1434,10 @@ function check_events(player,start,stop){
             if(n==9){
                 for(i=0;i<player_number;i++){
                     the_player = get_player_by_idx(i);
-                    showMessage(the_player[NAME]+" press ok to roll the dice ...");
+                    show_message(the_player[NAME]," press ok to roll the dice ...");
                     points = dice();
                     the_player[MNY] = the_player[MNY]+points*10;
+                    show_message(the_player[NAME], "got "+(points*10)+":)");
                 }
             }
             if(n==10){
@@ -1072,26 +1452,31 @@ function check_events(player,start,stop){
                         min_player = the_player;
                     }
                 }
-                if(min_player[MNY]-500>=0){
-                    min_player[MNY]=min_player[MNY]-500;
-                }else{
-                    showMessage(min_player[NAME]+" fails !!!");
+                fail = fails_and_exit(min_player,500);
+                currentMoney = parseInt(min_player[MNY]);
+                if(isNaN(currentMoney))currentMoney=0;
+                if(!fail){
+                    min_player[MNY]=currentMoney - 500;
                 }
             }
             if(n==12){
                 max_money = 0;
-                max_player = player0;
                 for(i=0;i<player_number;i++){
                     the_player = get_player_by_idx(i);
                     if(max_money<the_player[MNY]){
                         max_money=the_player[MNY];
-                        max_player = the_player;
                     }
                 }
-                if(max_player[MNY]-1000>=0){
-                    max_player[MNY]=max_player[MNY]-1000;
-                }else{
-                    showMessage(max_player[NAME]+" fails !!!");
+                for(i=0;i<player_number;i++){
+                    the_player = get_player_by_idx(i);
+                    if(max_money==the_player[MNY]){
+                        fail = fails_and_exit(the_player,1000);
+                        currentMoney = parseInt(the_player[MNY]);
+                        if(isNaN(currentMoney))currentMoney=0;
+                        if(!fail){
+                            the_player[MNY]=currentMoney-1000;
+                        }
+                    }
                 }
             }
         }
@@ -1134,17 +1519,19 @@ function check_events(player,start,stop){
                     fee = parseInt(get_item("过路费",position));
                 }
             }
-            showMessage("Pay "+ fee +" to "+owner_name +" !");
+            show_message(player[NAME],"Pay "+ fee +" to "+owner_name +" !");
 
-            currentMoney = player[MNY];
-            if(currentMoney > fee){
+            fail = fails_and_exit(player,fee);
+            currentMoney = parseInt(player[MNY]);
+            if(isNaN(currentMoney))currentMoney=0;
+            if(!fail){
                 player[MNY]=currentMoney - fee;
                 to_player = get_player_by_name(owner_name);
-                to_player[MNY]=to_player[MNY]+fee;
-
-            }else{
-                showMessage(player[NAME]+" fails !!!");
+                to_player_money = to_player[MNY];
+                if(isNaN(to_player_money))to_player_money=0;
+                to_player[MNY]=to_player_money+fee;
             }
+
         }
         ret = true;
         
@@ -1184,15 +1571,15 @@ function count_player_areas(player,type){
     if(type == "火车站") return num_stations;
     if(type == "水电") return num_factorys;
 }
-/*
+
 var dice_index = 0;
-var dice_number = newArray(1,3,7);
-function dice(){
+var dice_number = newArray(1,40,1,1,1);
+function dice1(){
     ret = dice_number[dice_index];
-    dice_index = (dice_index+1)%3;
+    dice_index = (dice_index+1)%dice_number.length;
     return ret;
 }
-*/
+
 function dice(){
     number = 1+floor(random*12) ;
     //return 7;
@@ -1250,4 +1637,17 @@ function draw_dice(){
 
     setColor(color);
 }
+function money_inc(player,money){
+    currentMoney = parseInt(player[MNY]);
+    if(isNaN(currentMoney))currentMoney=0;
+    add_money = parseInt(money);
+    if(isNaN(add_money))add_money=0;
+    player[MNY] = currentMoney+add_money;
+}
+function play_sound(type){
+    if(!PLAY_SOUND)return;
 
+    if(type=="dice"){ music = "c:/windows/media/Alarm02.wav";}
+    exec("C:/Program Files (x86)/Windows Media Player/wmplayer.exe",music);
+
+}
